@@ -8,7 +8,7 @@ How to read it: **WSC** is the spell's stat modifier mix (STR20 DEX20 = 20% each
 
 | Family | What scales it | Gear stats to stack |
 |---|---|---|
-| Physical | base D from Blue Magic skill (capped per spell) + fSTR + WSC; attack = 8 + skill + STR; hit rate = main-hand accuracy; per hit for multi-hit | the spell's WSC stats, attack, accuracy (first on multi-hit), Blue Magic skill, crit on tpMod CRITICAL spells |
+| Physical | base D from Blue Magic skill (capped per spell) + fSTR + WSC; attack = 8 + skill + STR, and Horizon's BLU Primer states gear attack does not apply; hit rate = main-hand accuracy with no +100 first-hit bonus on Horizon; per hit for multi-hit. Horizon 2.0: held TP scales tpMod spells without Chain Affinity (LSB base needs CA) | STR, Blue Magic skill, the spell's WSC stats, accuracy (every hit), crit on tpMod CRITICAL spells, Store TP / TP holding |
 | Magical | ((lvl+2) + WSC) * fTP + (your dStat - target's) * mult; then MAB, magic accuracy, elemental staff, day/weather | INT (or CHR / MND per spell), MAB, magic accuracy, matching staff and obi |
 | Breath | current HP / hpMod (+ lvl term), staff, day/weather, resist | max HP at cast completion, matching staff and obi, magic accuracy |
 | Drain | dark magic style, resist on INT | INT, magic accuracy, dark staff / Anrin Obi |

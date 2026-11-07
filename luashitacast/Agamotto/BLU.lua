@@ -2,7 +2,7 @@
 -- v2, 2026-11-07. Rebuilt on Tim's v1 with per-spell gear composition.
 --
 -- How sets are chosen (Rag's composition idea: a base set, then overlays laid on top):
---   Physical blue magic : BluePhys -> BluePhys_MultiHit -> Mod_<STAT>... -> BluePhys_Crit -> acc tier -> BluePhys_CA
+--   Physical blue magic : BluePhys -> BluePhys_MultiHit -> Mod_<STAT>... -> BluePhys_Crit -> acc tier -> BluePhys_TP (TP high or Chain Affinity)
 --   Magical blue magic  : BlueMag  -> BlueMag_<INT|MND|CHR> -> BlueMag_Acc (High tier) -> BlueMag_MB (Burst Affinity up) -> staff/obi
 --   Breath              : MaxHP -> BlueBreath -> staff/obi
 --   Drains              : BlueDrain -> dark staff/obi
@@ -13,10 +13,13 @@
 --
 -- Why these overlays (from the LandSandBoat source HorizonXI is rebased on, scripts/globals/bluemagic.lua):
 --   Physical: D = (floor(skill*0.11)*2+3, capped per spell) + fSTR + WSC. WSC is the spell's stat modifiers
---             (e.g. Disseverment STR 20% DEX 20%) times a level factor. Base attack is 8 + Blue Magic skill + STR.
---             Hit rate is your main-hand accuracy. So: STR/mods for D, attack and accuracy per hit, and Blue
---             Magic skill helps D and attack too. Without Chain Affinity TP does nothing; with it, TP feeds fTP
---             or accuracy depending on the spell and the Chain Affinity overlay goes on.
+--             (e.g. Disseverment STR 20% DEX 20%) times a level factor. Attack comes from Blue Magic skill + STR;
+--             Horizon's BLU Primer is explicit that GEAR ATTACK DOES NOT AFFECT PHYSICAL SPELLS. Hit rate is your
+--             main-hand accuracy and Horizon currently lacks the +100 first-hit bonus, so accuracy counts on every
+--             hit. Priorities: STR, Blue Magic skill, the spell's modifier stats, accuracy.
+--             TP: in LandSandBoat base, TP only matters under Chain Affinity. On Horizon as of patch 2.0 held TP
+--             scales TP-modifier spells on its own (the "3K TP meta", near double damage at 3000 TP), and the
+--             Primer expects 2.1 to change it. The profile treats TP >= TpThreshold or Chain Affinity as "TP active".
 --   Magical : D = ((level+2) + WSC) * fTP + (your dStat - target dStat) * mult, then MAB, magic accuracy,
 --             elemental staff, day/weather. dStat is INT for most, CHR for Eyes On Me and Mysterious Light,
 --             MND for Mind Blast and Magic Hammer.
@@ -36,6 +39,7 @@
 --   breath     toggle max-HP idle mode (breath spells already swap to max HP midcast; this is for standing around)
 --   staff      toggle elemental staff swaps on magical/breath/drain/enfeeble/cure casts (costs TP; off by default)
 --   fastphys   toggle equipping the physical set in precast for 0.5 s casts (on by default)
+--   tp <n>     set the TP threshold for the TP overlay (default 2000; 9999 disables it, 0 forces it)
 --   status     print current toggles
 --
 -- Rules that bite: '' in a slot does nothing, 'remove' clears it, 'displaced' marks a slot another item will
@@ -55,6 +59,7 @@ local Settings = {
     UseStaff     = false,   -- swapping main hand for a staff dumps TP; opt in
     FastPhysical = true,    -- equip physical blue set in precast for sub-second casts
     RestingAfter = 16,      -- seconds of resting before resting gear goes on (lets a regen tick land first)
+    TpThreshold  = 2000,    -- TP at or above this counts as "TP active" for BluePhys_TP (Horizon 2.0 behaviour)
 }
 
 -- ---------------------------------------------------------------------------------------------------------------
@@ -188,8 +193,10 @@ local sets = {
     },
     BluePhys_Crit = {               -- Foot Kick, Power Attack, Screwdriver, Sickle Slash (35% base crit)
     },
-    BluePhys_CA = {                 -- Chain Affinity is up: TP now scales fTP or acc, treat like a WS
-        Waist = 'Warwolf Belt',
+    BluePhys_TP = {                 -- TP is high or Chain Affinity is up: fTP or accuracy now scales with TP.
+        Waist = 'Warwolf Belt',     -- For 'acc'-type spells (Disseverment, Bludgeon, Jet Stream, Frypan, Spinal Cleave,
+    },                              -- Terror Touch) the TP supplies accuracy, so this overlay can lean STR instead of acc.
+    BluePhys_TP_Acc = {             -- 'acc'-type spell with TP active: shift accuracy slots back to STR/modifier pieces
     },
     -- Stat modifier overlays. Applied in the spell's modifier order, strongest last.
     -- Candidates (verify on Horizon): STR Flame/Sun Ring, Spike Necklace, Warwolf Belt. DEX Spike Necklace.
@@ -258,7 +265,7 @@ local sets = {
     BlueBuff = {
         Body = 'Magus Jubbah',
     },
-    BlueSkill = {                   -- Blue Magic skill: Magus Jubbah +15, Immortal's Earring +5, Mirage Keffiyeh +5, Ksi Sash +3
+    BlueSkill = {                   -- Blue Magic skill: Magus Jubbah +15, Immortal's Earring +5, Ksi Sash +3 (Mirage relic does not drop on Horizon yet)
         Body = 'Magus Jubbah',
     },
     Learning = {                    -- locked on every blue cast while /blu learn is on
@@ -491,7 +498,11 @@ local function EquipBlueMagic(spell)
         elseif AccTier() == 'High' then
             gFunc.EquipSet(sets.BluePhys_HighAcc)
         end
-        if gData.GetBuffCount('Chain Affinity') > 0 then gFunc.EquipSet(sets.BluePhys_CA) end
+        local tpActive = gData.GetBuffCount('Chain Affinity') > 0 or gData.GetPlayer().TP >= Settings.TpThreshold
+        if tpActive and info.tp ~= nil and info.tp ~= 'dur' and info.tp ~= 'eff' then
+            gFunc.EquipSet(sets.BluePhys_TP)
+            if info.tp == 'acc' then gFunc.EquipSet(sets.BluePhys_TP_Acc) end
+        end
 
     elseif info.kind == 'mag' then
         gFunc.EquipSet(sets.BlueMag)
@@ -562,10 +573,15 @@ profile.HandleCommand = function(args)
     elseif cmd == 'fastphys' then
         Settings.FastPhysical = not Settings.FastPhysical
         gFunc.Message('BLU physical set in precast: ' .. tostring(Settings.FastPhysical))
+    elseif cmd == 'tp' then
+        if tonumber(args[2]) then
+            Settings.TpThreshold = tonumber(args[2])
+        end
+        gFunc.Message('BLU TP threshold: ' .. tostring(Settings.TpThreshold))
     elseif cmd == 'status' or cmd == 'blu' then
-        gFunc.Message(string.format('BLU acc=%s learn=%s breathidle=%s staff=%s fastphys=%s',
+        gFunc.Message(string.format('BLU acc=%s learn=%s breathidle=%s staff=%s fastphys=%s tp>=%d',
             AccTier(), tostring(Settings.Learning), tostring(Settings.BreathIdle),
-            tostring(Settings.UseStaff), tostring(Settings.FastPhysical)))
+            tostring(Settings.UseStaff), tostring(Settings.FastPhysical), Settings.TpThreshold))
     end
 end
 
