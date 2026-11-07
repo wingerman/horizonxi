@@ -1,6 +1,7 @@
 # Installing these profiles on HorizonXI
 
-For a friend starting from a working HorizonXI launcher install. About five minutes.
+For a friend starting from a working HorizonXI launcher install. About five minutes. Get the files from
+<https://github.com/wingerman/horizonxi>: green **Code** button, **Download ZIP**, or `git clone https://github.com/wingerman/horizonxi.git`.
 
 ## 1. Locate the Game folder
 

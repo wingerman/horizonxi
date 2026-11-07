@@ -23,6 +23,8 @@ scripts/               deploy.sh (WSL/Linux) and deploy.ps1 (Windows) to copy a 
 
 ## Install
 
+Clone or download: <https://github.com/wingerman/horizonxi> (`git clone https://github.com/wingerman/horizonxi.git`).
+
 1. Find your HorizonXI game folder. Default is `C:\Program Files\HorizonXI\Game` or wherever the
    launcher put it; the `Game` folder contains `addons`, `config`, `scripts`, `polplugins`.
 2. Find your character folder name. In game, `/addon load luashitacast` then `/lac newlua` creates
