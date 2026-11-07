@@ -1,13 +1,16 @@
-# Agamotto (Tim Peterson)
+# Agamotto_112818 (Tim Peterson)
 
-Character ID not yet known. LuAshitacast loads from `<Name>_<Id>`, so on install this folder is
-copied as `Agamotto_<Id>`; get the id from `/lac newlua` in game and pass it to the deploy script:
+Character id 112818, read from Tim's FindAll cache export on 2026-11-07. Deploy with:
 
 ```bash
-scripts/deploy.sh Agamotto /path/to/Game Agamotto_123456
+scripts/deploy.sh Agamotto_112818 /path/to/Game
 ```
 
-Once known, rename this folder to the full name and drop the third argument.
+Three profiles live here:
+
+- `BLU.lua`: Tim's gear as he had it in v1, with the v2 per-spell composition logic. The everyday file.
+- `BLU_bis.lua`: the same logic filled with the best in-era gear on Horizon, whether or not Tim owns it. A shopping list.
+- `BLU_inv.lua`: the same logic filled only from gear Tim actually owns, per `inventory-2026-11-07.md`. Load this one first.
 
 ## BLU.lua (v2, 2026-11-07)
 
