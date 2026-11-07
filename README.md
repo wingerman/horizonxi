@@ -17,7 +17,7 @@ luashitacast/
   <Name>_<CharId>/     one folder per character, one <JOB>.lua per job, plus settings.lua
 ashita-scripts/        text scripts for Game\scripts\, run in game with /exec <name>.txt
 macros/                in-game macro palettes written out as reference
-docs/                  setup and install guides
+docs/                  setup and install guides, blue-magic-75.md (per-spell formulas and modifiers)
 scripts/               deploy.sh (WSL/Linux) and deploy.ps1 (Windows) to copy a character into an install
 ```
 
