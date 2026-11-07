@@ -1,0 +1,14 @@
+# luashitacast/
+
+One folder per character, named exactly as LuAshitacast names it: `<Name>_<CharacterId>`.
+Inside, one `<JOB>.lua` per job (three-letter uppercase: `BST.lua`, `BLM.lua`) and a `settings.lua`.
+LuAshitacast loads `<JOB>.lua` automatically when you change to that job.
+
+`common/` is shared by every character and is copied alongside the character folder on install.
+`_template/` is the starting point for a new job file.
+
+| Character | Player | Jobs |
+|---|---|---|
+| _(none yet)_ | | |
+
+Add a row when you add a folder.

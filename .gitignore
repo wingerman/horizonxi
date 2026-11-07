@@ -1,0 +1,4 @@
+# LuAshitacast writes a timestamped copy here on every /lac addset. Git is the history.
+backups/
+Thumbs.db
+.DS_Store
