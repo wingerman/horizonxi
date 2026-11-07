@@ -80,8 +80,10 @@ Where the gear comes from, roughly in order of impact:
 Things the research ruled out, so you do not chase them: Joyeuse, Ridill, Justice Sword and the other
 multi-hit swords (not BLU on Horizon); Rostrum Pumps, Zenith Mitts, Kirin's Osode, Byakko's Haidate,
 Hecatomb, Dalmatica (not BLU on Horizon); Potent Belt, Chivalrous Chain, Ksi Sash, Wightslayer, Walahra
-Turban (Assault, Nyzul or Imperial Standing, or nerfed); Mirage relic (no Horizon drop); Sorcerer's Ring
-(page lists BLM only). Hofud (Odin) is the one "maybe": the page has no out-of-era tag but Odin's Chamber is
+Turban (Assault, Nyzul or Imperial Standing, or nerfed); Sorcerer's Ring (page lists BLM only). Correction
+2026-11-07: Mirage relic DOES drop on Horizon (Dynamis Beaucedine / Xarcabard / Tavnazia, +1 at Sagheera for 26
+Ordelle Bronzepieces); Tim owns three pieces. The earlier "no Horizon drop" ruling was wrong and BLU_bis.lua now
+uses Mirage Keffiyeh (breath +10%, skill +5) and Mirage Charuqs +1 (AGI/INT +4) where they win. Hofud (Odin) is the one "maybe": the page has no out-of-era tag but Odin's Chamber is
 Einherjar content.
 
 Judgement calls baked into the file: Rajas over Tamas; spell sets never touch Main or Sub (a weapon swap
@@ -89,3 +91,41 @@ zeroes TP); Magus Jubbah +1 stays on for physical spells and only the High accur
 Corazza; Maat's Cap over Magus Keffiyeh +1 for casting; Moldavite over a second Bloodbead earring for breath.
 The Blue Mage pages on the wiki warn the job "is expected to change drastically", so re-check the Primer
 after each Horizon patch.
+
+## BLU_inv.lua (owned gear edition, 2026-11-07)
+
+Same logic, filled only from what Tim owns per [inventory-2026-11-07.md](inventory-2026-11-07.md), which was
+parsed from his FindAll plugin cache (`Game\config\plugins\findall\cache\Agamotto_112818.bin`: 16-byte
+name, 4-byte id, then 15 containers of 81 item records at 44 bytes, then a 4096-byte key-item bitmap). The
+cache covered Inventory, Safe, Safe2, Storage, Locker, Case, Wardrobe 2 and Wardrobe 7, so Mog House gear is
+in. Every owned item's Horizon stats were checked on the wiki
+([docs/gear-research/blu-75/owned-agamotto.md](../../docs/gear-research/blu-75/owned-agamotto.md)).
+
+**This is the file to load.** `/lac load BLU_inv`, then `/lac debug on` and cast one of each kind.
+
+What it does differently from BLU.lua (Tim's own v1 gear):
+
+- Homam everywhere for TP, precast and accuracy; Mirage Jubbah +1 is the idle body (Refresh without blocking
+  the head slot, which Vermillion Cloak did).
+- Physical spells: Mirage Keffiyeh (skill +5) + Magus Jubbah (skill +15) + Creek M Mitts (STR +6) + two Triumph
+  Rings (STR +10) + Forager's Mantle + Spike Necklace. The Jr.Msk.Chakram +2 rides in the ranged slot for STR +3
+  away from his home nation.
+- Per-modifier overlays from what he has: Love Torque + Spinel Ring (DEX), Hope Torque + Scouter's Rope +
+  Mirage Charuqs +1 (AGI), Prudence Torque + Snow Ring (INT), Justice Badge (MND, also undoes Spike's MND -6),
+  Star Necklace + Angel's Ring + Jester's Cape +1 (CHR), Steppe Sash (VIT).
+- Magical: Errant Hpl., two Snow Rings, Prudence Torque, Moldavite, Nashira for magic accuracy, Mirage
+  Charuqs +1 for INT. Drains and enfeebles use Magus Jubbah for the skill.
+- Breath: the MaxHP set reaches roughly +500 HP from Creek M Mitts, Steppe Sash, Bomb Queen, Bloodbead,
+  Gigant Mantle and Homam, with Mirage Keffiyeh (breath +10%) and Moldavite laid on top.
+- Sattva Ring is his CoP ring (damage taken -5% on Horizon), so it sits in Idle; there is no Rajas.
+- Teleport rings and Chariot Band are in the lockable list so they stay on when he puts them on by hand.
+
+Gap to BLU_bis.lua, in rough order of value: Maat's Cap; the eight obis and Soil Gorget (Sea quest "In the Name
+of Science"); Justice, Fortitude, Faith and Temperance Torques (Sea); Novio and Static Earrings; Speed Belt;
+Warwolf Belt; Flame, Thunder, Soil, Breeze, Aqua, Light Rings; Mahatma or Errant Cuffs / Slops / Pigaches;
+Penitent's Rope; Prism Cape; Alky. or Pallas's Bracelets; Cerberus Mantle +1; Dusk Jerkin / Trousers; Magus +1
+pieces; Martial Anelace.
+
+Known gaps in the owned file: no obis (tables are empty), no magic-burst piece, no fast-cast feet. Insect Slayer
+(Horizon-buffed Macc +11 / MAB +9) is not used because it would mean a main-hand swap; it is a good casting-mode
+weapon if he is not holding TP.

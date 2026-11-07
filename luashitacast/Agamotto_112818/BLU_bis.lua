@@ -63,6 +63,27 @@
 -- Rules that bite: '' in a slot does nothing, 'remove' clears it, 'displaced' marks a slot another item will
 -- empty. Set keys are case sensitive. /lac addset rewrites the "local sets = {" block, keep braces balanced.
 
+local profile = {}
+
+-- ---------------------------------------------------------------------------------------------------------------
+-- Toggles
+-- ---------------------------------------------------------------------------------------------------------------
+local AccTiers = { [1] = 'Low', [2] = 'Med', [3] = 'High' }
+
+local Settings = {
+    AccTier      = 2,       -- index into AccTiers
+    Learning     = false,
+    BreathIdle   = false,
+    UseStaff     = false,   -- swapping main hand for a staff dumps TP; opt in
+    FastPhysical = true,    -- equip physical blue set in precast for sub-second casts
+    RestingAfter = 16,      -- seconds of resting before resting gear goes on (lets a regen tick land first)
+    TpThreshold  = 2000,    -- TP at or above this counts as "TP active" for BluePhys_TP (Horizon 2.0 behaviour)
+}
+
+-- ---------------------------------------------------------------------------------------------------------------
+-- Sets. Flat so /lac addset works. Overlays only name the slots they change.
+-- Fill overlays by dressing in game and running /lac addset <SetName>, or by hand.
+-- ---------------------------------------------------------------------------------------------------------------
 local sets = {
     -- ---- Idle / resting / town ------------------------------------------------------------------------------
     Idle = {
