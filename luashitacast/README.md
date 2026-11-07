@@ -9,6 +9,6 @@ LuAshitacast loads `<JOB>.lua` automatically when you change to that job.
 
 | Character | Player | Jobs |
 |---|---|---|
-| `Agamotto/` (id pending) | Tim Peterson | BLU |
+| `Agamotto/` (id pending) | Tim Peterson | BLU (BLU.lua current gear, BLU_bis.lua target gear) |
 
 Add a row when you add a folder.

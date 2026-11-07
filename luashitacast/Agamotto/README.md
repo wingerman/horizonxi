@@ -52,3 +52,37 @@ Open items for Tim:
   spell. Everyone's Grudge is absent for the same reason.
 - Confirm the 0.5 s precast behaviour with `/lac debug on`. If the physical set shows in the log before the
   spell packet and the damage looks right, leave `fastphys` on.
+
+## BLU_bis.lua (target gear edition, 2026-11-07)
+
+Same code as BLU.lua with every set filled with the best gear a BLU can actually obtain on HorizonXI right
+now. About 300 item pages on horizonffxi.wiki were checked for stats, job list, source and out-of-era status;
+the full tables with URLs are in [docs/gear-research/blu-75/](../../docs/gear-research/blu-75/). Load with
+`/lac load BLU_bis`, or move sets into BLU.lua as pieces arrive.
+
+Where the gear comes from, roughly in order of impact:
+
+| Source | Pieces |
+|---|---|
+| Limbus (Omega, Wilhelm in Mhaura) | Homam Zucchetto, Corazza, Manopolas, Cosciales, Gambieras: the TP, precast, accuracy and max-HP backbone |
+| Limbus (Ultima) | Nashira Turban, Manteel, Gages, Seraweels, Crackows: magic accuracy and haste for casting |
+| Sagheera, Port Jeuno (Ancient Beastcoins) | Magus +1 (Jubbah +1 is the physical body; Shalwar +1 has Horizon-added Haste +2%), Brutal Earring, Stealth Earring (Dual Wield lives here on Horizon), Loquacious Earring, Boxer's Mantle |
+| Sea (Al'Taieu and Ru'Hmet) | Jailer torques, +5 to one stat each: Justice STR, Love DEX, Fortitude VIT, Hope AGI, Prudence INT, Faith MND, Temperance CHR. Novio Earring (MAB +7). Soil Gorget and the eight obis via "In the Name of Science" |
+| CoP missions and quests | Rajas Ring (8-4; Tamas or Sattva are the alternatives), Static and Hollow Earring (Apocalypse Nigh), Fenrir's Stone, Bushinomimi, Suppanomimi |
+| Maat | Maat's Cap, +7 to every stat, in half the physical and casting sets |
+| Crafted / AH | Mahatma Hpl., Cuffs, Slops, Pigaches; Errant Hpl.; Prism Cape; Flame, Thunder, Soil, Breeze, Snow, Aqua, Light, Omniscient Ring; Scp. Harness +1; Dusk Jerkin, Gloves, Trousers; Alky. and Pallas's Bracelets (Delkfutt NMs); Cerberus Mantle +1; Warwolf Belt; Penitent's Rope; Devil and Demon Slayer; elemental staves |
+| NMs, BCNM, ENM, KSNM | Speed Belt (King Arthro and Horizon KSNMs), Swift Belt (Sacrarium), Optical Hat (Hakutaku), Peacock Charm (Argus), Martial Anelace (ENM Brothers), Toreador's Ring, Life Belt, Bomb Queen Ring, Bloodbead pieces, Gigant Mantle, Hierarch Belt, Relaxing Earring, Jelly Ring |
+| ToAU quests | Magus AF, Immortal's Scimitar (Horizon added Macc +5 / MAB +4) |
+
+Things the research ruled out, so you do not chase them: Joyeuse, Ridill, Justice Sword and the other
+multi-hit swords (not BLU on Horizon); Rostrum Pumps, Zenith Mitts, Kirin's Osode, Byakko's Haidate,
+Hecatomb, Dalmatica (not BLU on Horizon); Potent Belt, Chivalrous Chain, Ksi Sash, Wightslayer, Walahra
+Turban (Assault, Nyzul or Imperial Standing, or nerfed); Mirage relic (no Horizon drop); Sorcerer's Ring
+(page lists BLM only). Hofud (Odin) is the one "maybe": the page has no out-of-era tag but Odin's Chamber is
+Einherjar content.
+
+Judgement calls baked into the file: Rajas over Tamas; spell sets never touch Main or Sub (a weapon swap
+zeroes TP); Magus Jubbah +1 stays on for physical spells and only the High accuracy tier swaps in Homam
+Corazza; Maat's Cap over Magus Keffiyeh +1 for casting; Moldavite over a second Bloodbead earring for breath.
+The Blue Mage pages on the wiki warn the job "is expected to change drastically", so re-check the Primer
+after each Horizon patch.
