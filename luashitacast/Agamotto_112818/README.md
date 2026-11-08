@@ -12,6 +12,24 @@ Three profiles live here:
 - `BLU_bis.lua`: the same logic filled with the best in-era gear on Horizon, whether or not Tim owns it. A shopping list.
 - `BLU_inv.lua`: the same logic filled only from gear Tim actually owns, per `inventory-2026-11-07.md`. Load this one first.
 
+## v3 (2026-11-07, after Tim's first play test)
+
+Two changes, applied to all three files:
+
+- **Range and Ammo are decided together.** Tim saw the chakram and the Happy Egg flickering: the server
+  (LandSandBoat `charutils.cpp`, `EquipItem`) empties the other slot whenever a Range or Ammo item's skill type
+  differs from what is there. Bows take only arrows, crossbows only bolts, guns only bullets, and stat ammo
+  (eggs, Tathlums, Hedgehog Bomb, Bomb Core, Tiphia Sting) has no skill at all, so it cannot sit beside any
+  ranged weapon, chakram or stat crossbow included. LuAshitacast only re-equips what it finds missing, so the
+  two items swap each other out forever. Rule now: a set that names Range or Ammo names both, the other one
+  `'remove'` unless the pair is legal. Idle, Resting and MaxHP wear an egg with Range empty; TP, WS and BluePhys
+  wear the chakram with Ammo empty; INT and magic sets wear the Tathlum with Range empty. A `RangedKind`
+  table classifies the items and `CheckRangedPairs()` runs on load (and on `/blu ranged`), printing every set
+  that breaks the rule, so a bad `/lac addset` is caught at load rather than in a fight.
+- **Accuracy is on or off.** The Low / Med / High cycle (and the Low "attack" variant) is gone. `/blu acc`
+  toggles `Settings.Acc`; when on, `TP_Acc`, `WS_Acc`, `BluePhys_Acc` and `BlueMag_Acc` lay over their bases.
+  Fewer items to cycle through, and the status line reads `acc=true/false`.
+
 ## BLU.lua (v2, 2026-11-07)
 
 Tim's v1 (git history, first commit) had three accuracy tiers, a learning lock, a breath max-HP idle mode and
@@ -24,7 +42,7 @@ What changed and why:
   dStat), parsed from the LandSandBoat spell scripts HorizonXI runs on. Full table in
   [docs/blue-magic-75.md](../../docs/blue-magic-75.md).
 - **Physical spells compose** `BluePhys` + `BluePhys_MultiHit` (2+ hits) + `Mod_STR`/`Mod_DEX`/... per the
-  spell's modifiers + `BluePhys_Crit` + the accuracy tier + `BluePhys_CA` when Chain Affinity is up. Fill the
+  spell's modifiers + `BluePhys_Crit` + `BluePhys_Acc` when `/blu acc` is on + `BluePhys_TP` when TP is high or Chain Affinity is up. Fill the
   `Mod_*` overlays with a piece or two each and every spell gets the right stat without its own set.
 - **Physical set goes on in precast.** Physical blue magic casts in 0.5 s and the server reads stats at
   completion; a midcast swap sent after the spell packet can miss. Toggle with `/blu fastphys` if it misbehaves.
@@ -33,9 +51,9 @@ What changed and why:
   like standing in it. Note the `MaxHP` set names a Head while Idle wears Vermillion Cloak, which displaces
   head; give `MaxHP` a Body too or the Keffiyeh will not go on.
 - **Magical spells split by dStat**: INT for most, CHR for Eyes On Me and Mysterious Light, MND for Mind Blast
-  and Magic Hammer. Burst Affinity up adds `BlueMag_MB`. High tier adds `BlueMag_Acc`.
+  and Magic Hammer. Burst Affinity up adds `BlueMag_MB`. `/blu acc` on adds `BlueMag_Acc`.
 - **Magus Jubbah is in the physical base set.** Blue Magic skill feeds both the base D and the base attack of
-  every physical spell in the server formula. Scp. Harness +1 is the alternative in the Low and High tiers.
+  every physical spell in the server formula. Scp. Harness +1 is the alternative in `BluePhys_Acc`.
 - **Elemental staves and obis** are wired for magical, breath, drain, enfeeble and cure casts. Staves are off
   by default (`/blu staff`) because swapping main hand dumps TP. Comment out staves you do not own.
 - **Skill-scaling buffs** (Diamondhide, Metallic Body, Occultation) get `BlueSkill`.
@@ -44,7 +62,7 @@ What changed and why:
   Goldsmith's Apron and Powder Boots stay on if you put them on by hand.
 - Sets are now flat under `local sets = {` and PascalCase, so `/lac addset <Name>` and `/lac set <Name>` work.
 
-Commands: `/blu acc`, `/blu learn`, `/blu breath`, `/blu staff`, `/blu fastphys`, `/blu status`
+Commands: `/blu acc`, `/blu ranged`, `/blu learn`, `/blu breath`, `/blu staff`, `/blu fastphys`, `/blu tp <n>`, `/blu status`
 (`/blu` is an alias for `/lac fwd`).
 
 Open items for Tim:
@@ -87,7 +105,7 @@ uses Mirage Keffiyeh (breath +10%, skill +5) and Mirage Charuqs +1 (AGI/INT +4) 
 Einherjar content.
 
 Judgement calls baked into the file: Rajas over Tamas; spell sets never touch Main or Sub (a weapon swap
-zeroes TP); Magus Jubbah +1 stays on for physical spells and only the High accuracy tier swaps in Homam
+zeroes TP); Magus Jubbah +1 stays on for physical spells and only `BluePhys_Acc` (`/blu acc` on) swaps in Homam
 Corazza; Maat's Cap over Magus Keffiyeh +1 for casting; Moldavite over a second Bloodbead earring for breath.
 The Blue Mage pages on the wiki warn the job "is expected to change drastically", so re-check the Primer
 after each Horizon patch.
@@ -109,7 +127,7 @@ What it does differently from BLU.lua (Tim's own v1 gear):
   the head slot, which Vermillion Cloak did).
 - Physical spells: Mirage Keffiyeh (skill +5) + Magus Jubbah (skill +15) + Creek M Mitts (STR +6) + two Triumph
   Rings (STR +10) + Forager's Mantle + Spike Necklace. The Jr.Msk.Chakram +2 rides in the ranged slot for STR +3
-  away from his home nation.
+  away from his home nation, with Ammo emptied; the eggs and the Tathlum go on only when Range is empty (see v3).
 - Per-modifier overlays from what he has: Love Torque + Spinel Ring (DEX), Hope Torque + Scouter's Rope +
   Mirage Charuqs +1 (AGI), Prudence Torque + Snow Ring (INT), Justice Badge (MND, also undoes Spike's MND -6),
   Star Necklace + Angel's Ring + Jester's Cape +1 (CHR), Steppe Sash (VIT).

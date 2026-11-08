@@ -20,12 +20,12 @@
 -- Phtm. Tathlum, Ryl.Kgt. Belt, Jr.Msk.Chakram +2). If a swap does not happen, /lac debug on and compare.
 --
 -- How sets are chosen (Rag's composition idea: a base set, then overlays laid on top):
---   Physical blue magic : BluePhys -> BluePhys_MultiHit -> Mod_<STAT>... -> BluePhys_Crit -> acc tier -> BluePhys_TP (TP high or Chain Affinity)
---   Magical blue magic  : BlueMag  -> BlueMag_<INT|MND|CHR> -> BlueMag_Acc (High tier) -> BlueMag_MB (Burst Affinity up) -> staff/obi
+--   Physical blue magic : BluePhys -> BluePhys_MultiHit -> Mod_<STAT>... -> BluePhys_Crit -> BluePhys_Acc (acc on) -> BluePhys_TP (TP high or Chain Affinity)
+--   Magical blue magic  : BlueMag  -> BlueMag_<INT|MND|CHR> -> BlueMag_Acc (acc on) -> BlueMag_MB (Burst Affinity up) -> staff/obi
 --   Breath              : MaxHP -> BlueBreath -> staff/obi
 --   Drains              : BlueDrain -> dark staff/obi
 --   Cures               : BlueCure -> light staff
---   Enfeebles           : BlueEnfeeble -> BlueMag_Acc (High tier) -> staff/obi
+--   Enfeebles           : BlueEnfeeble -> BlueMag_Acc (acc on) -> staff/obi
 --   Buffs               : BlueBuff (+ BlueSkill for Diamondhide / Metallic Body / Occultation, which scale with skill)
 --   Every blue cast     : Learning lock if /blu learn is on, then lockable safe gear re-asserted.
 --
@@ -52,7 +52,8 @@
 -- Verify any item's stats at https://horizonxi.com/items before trusting a retail wiki.
 --
 -- Commands (type /blu <cmd>, or /lac fwd <cmd>):
---   acc        cycle accuracy tier Low -> Med -> High (TP, WS and physical blue magic)
+--   acc        toggle accuracy gear on/off (TP_Acc, WS_Acc, BluePhys_Acc, BlueMag_Acc)
+--   ranged     re-run the Range/Ammo pair check (it also runs on load)
 --   learn      toggle spell-learning lock (Magus Jubbah + Bazubands on every blue cast)
 --   breath     toggle max-HP idle mode (breath spells already swap to max HP midcast; this is for standing around)
 --   staff      toggle elemental staff swaps on magical/breath/drain/enfeeble/cure casts (costs TP; off by default)
@@ -61,17 +62,16 @@
 --   status     print current toggles
 --
 -- Rules that bite: '' in a slot does nothing, 'remove' clears it, 'displaced' marks a slot another item will
--- empty. Set keys are case sensitive. /lac addset rewrites the "local sets = {" block, keep braces balanced.
+-- empty. Range and Ammo are set together in every set that names either (see "Range and Ammo travel together").
+-- Set keys are case sensitive. /lac addset rewrites the "local sets = {" block, keep braces balanced.
 
 local profile = {}
 
 -- ---------------------------------------------------------------------------------------------------------------
 -- Toggles
 -- ---------------------------------------------------------------------------------------------------------------
-local AccTiers = { [1] = 'Low', [2] = 'Med', [3] = 'High' }
-
 local Settings = {
-    AccTier      = 2,       -- index into AccTiers
+    Acc          = false,   -- accuracy gear on for TP, WS, physical and magical blue magic (/blu acc)
     Learning     = false,
     BreathIdle   = false,
     UseStaff     = false,   -- swapping main hand for a staff dumps TP; opt in
@@ -89,7 +89,7 @@ local sets = {
     Idle = {
         Main = 'Devil Slayer',              -- TP weapons stay on at idle
         Sub = 'Demon Slayer',               -- /NIN; Genbu's Shield (PDT -10%, Eva +10) when not /NIN
-        Range = 'Jr.Msk.Chakram +2',        -- STR +3 outside own-nation areas
+        Range = 'remove',                   -- stat ammo needs an empty Range slot (see Range and Ammo below)
         Ammo = 'Fortune Egg',               -- MP +1%
         Head = 'Homam Zucchetto',
         Neck = 'Peacock Amulet',
@@ -107,6 +107,7 @@ local sets = {
     Resting = {
         Main = 'Pluto\'s Staff',            -- hMP +10. Costs TP; comment out if holding TP matters more than MP
         Sub = 'displaced',
+        Range = 'remove',                   -- stat ammo needs an empty Range slot (see Range and Ammo below)
         Ammo = 'Fortune Egg',
         Neck = 'Checkered Scarf',           -- hMP +1
         Ear1 = 'Relaxing Earring',          -- hMP +2
@@ -120,6 +121,7 @@ local sets = {
     },
     -- Max HP. Breath spells read HP at cast completion; also /blu breath idle mode.
     MaxHP = {
+        Range = 'remove',                   -- stat ammo needs an empty Range slot (see Range and Ammo below)
         Ammo = 'Happy Egg',                 -- HP +1%
         Head = 'Homam Zucchetto',           -- HP +22 (breath overlay swaps in Mirage Keffiyeh)
         Neck = 'Shield Pendant',            -- HP +20
@@ -139,8 +141,8 @@ local sets = {
     TP = {
         Main = 'Devil Slayer',
         Sub = 'Demon Slayer',
-        Range = 'Jr.Msk.Chakram +2',
-        Ammo = 'Happy Egg',
+        Range = 'Jr.Msk.Chakram +2',        -- STR +3 outside own-nation areas
+        Ammo = 'remove',                    -- a ranged weapon locks out stat ammo
         Head = 'Homam Zucchetto',
         Neck = 'Peacock Amulet',
         Ear1 = 'Brutal Earring',
@@ -148,16 +150,13 @@ local sets = {
         Body = 'Homam Corazza',             -- Acc +15, Triple Attack
         Hands = 'Homam Manopolas',
         Ring1 = 'Toreador\'s Ring',
-        Ring2 = 'Triumph Ring',             -- STR +5; Med/High tiers swap the second Toreador's in
+        Ring2 = 'Triumph Ring',             -- STR +5; TP_Acc swaps the second Toreador's in
         Back = 'Forager\'s Mantle',         -- STR +3 Attack +15
         Waist = 'Swift Belt',               -- Haste +4%
         Legs = 'Homam Cosciales',
         Feet = 'Homam Gambieras',
     },
-    TP_MedAcc = {
-        Ring2 = 'Toreador\'s Ring',
-    },
-    TP_HighAcc = {
+    TP_Acc = {
         Head = 'Optical Hat',
         Ring2 = 'Toreador\'s Ring',
         Waist = 'Life Belt',
@@ -165,8 +164,8 @@ local sets = {
 
     -- ---- Weaponskills ---------------------------------------------------------------------------------------
     WS = {
-        Range = 'Jr.Msk.Chakram +2',
-        Ammo = 'Happy Egg',
+        Range = 'Jr.Msk.Chakram +2',        -- STR +3 outside own-nation areas
+        Ammo = 'remove',                    -- a ranged weapon locks out stat ammo
         Head = 'Homam Zucchetto',
         Neck = 'Spike Necklace',            -- STR +3 DEX +3
         Ear1 = 'Brutal Earring',
@@ -180,7 +179,7 @@ local sets = {
         Legs = 'Homam Cosciales',
         Feet = 'Homam Gambieras',
     },
-    WS_HighAcc = {
+    WS_Acc = {
         Head = 'Optical Hat',
         Neck = 'Peacock Amulet',
         Ring2 = 'Toreador\'s Ring',
@@ -213,7 +212,7 @@ local sets = {
     -- Ears are left alone so Brutal/Stealth stay on.
     BluePhys = {
         Range = 'Jr.Msk.Chakram +2',        -- STR +3 away from home nation
-        Ammo = 'Happy Egg',
+        Ammo = 'remove',                    -- a ranged weapon locks out stat ammo
         Head = 'Mirage Keffiyeh',           -- Blue Magic skill +5
         Neck = 'Spike Necklace',            -- STR +3 DEX +3 (MND -6: Mod_MND swaps it out)
         Body = 'Magus Jubbah',              -- Blue Magic skill +15, STR +3 DEX +3
@@ -225,9 +224,7 @@ local sets = {
         Legs = 'Homam Cosciales',           -- Acc +3
         Feet = 'Homam Gambieras',           -- Acc +6
     },
-    BluePhys_LowAcc = {
-    },
-    BluePhys_HighAcc = {
+    BluePhys_Acc = {
         Head = 'Optical Hat',               -- Acc +10
         Neck = 'Peacock Amulet',            -- Acc +10
         Body = 'Homam Corazza',             -- Acc +15, drops the Jubbah's skill: only when hits are missing
@@ -273,6 +270,7 @@ local sets = {
         Feet = 'Mirage Charuqs +1',         -- AGI +4 INT +4
     },
     Mod_INT = {
+        Range = 'remove',                   -- stat ammo needs an empty Range slot (see Range and Ammo below)
         Ammo = 'Phtm. Tathlum',             -- INT +2
         Neck = 'Prudence Torque',           -- INT +5
         Ring2 = 'Snow Ring',                -- INT +5
@@ -289,6 +287,7 @@ local sets = {
 
     -- ---- Magical blue magic ---------------------------------------------------------------------------------
     BlueMag = {                     -- INT, MAB, magic accuracy
+        Range = 'remove',                   -- stat ammo needs an empty Range slot (see Range and Ammo below)
         Ammo = 'Phtm. Tathlum',             -- INT +2
         Head = 'Magus Keffiyeh',            -- INT +3 MND +3
         Neck = 'Prudence Torque',           -- INT +5. Uggalepih Pendant (MAB +8 under 51% MP) is the manual swap
@@ -311,7 +310,7 @@ local sets = {
         Ring1 = 'Angel\'s Ring',            -- CHR +4
         Back = 'Jester\'s Cape +1',         -- CHR +10
     },
-    BlueMag_Acc = {                 -- High tier: Nashira magic accuracy
+    BlueMag_Acc = {                 -- acc on: Nashira magic accuracy
         Head = 'Nashira Turban',            -- Magic Accuracy +5
         Feet = 'Nashira Crackows',          -- Magic Accuracy +2
     },
@@ -324,6 +323,7 @@ local sets = {
         Ear2 = 'Moldavite Earring',         -- MAB +5 (breath is MAB-scaled on Horizon for now)
     },
     BlueDrain = {                   -- Blood Drain, Digest, MP Drainkiss, Blood Saber: INT, Macc, MAB, skill
+        Range = 'remove',                   -- stat ammo needs an empty Range slot (see Range and Ammo below)
         Ammo = 'Phtm. Tathlum',
         Head = 'Magus Keffiyeh',
         Neck = 'Prudence Torque',
@@ -343,6 +343,7 @@ local sets = {
         Waist = 'Ryl.Kgt. Belt',            -- MND +2
     },
     BlueEnfeeble = {                -- resist check on INT and Blue Magic skill
+        Range = 'remove',                   -- stat ammo needs an empty Range slot (see Range and Ammo below)
         Ammo = 'Phtm. Tathlum',
         Head = 'Magus Keffiyeh',
         Neck = 'Prudence Torque',
@@ -555,8 +556,74 @@ local function LockSafeGear()
     end
 end
 
-local function AccTier()
-    return AccTiers[Settings.AccTier]
+-- ---------------------------------------------------------------------------------------------------------------
+-- Range and Ammo travel together
+-- ---------------------------------------------------------------------------------------------------------------
+-- The server (LandSandBoat charutils.cpp, EquipItem) empties the other slot whenever a Range or Ammo item's
+-- skill type differs from what is already there: a bow tolerates only arrows, a crossbow only bolts, a gun only
+-- bullets. Stat ammo (Happy Egg, Tathlums, Hedgehog Bomb, Bomb Core, Tiphia Sting...) has no skill at all, so
+-- it cannot share with ANY ranged weapon, chakram and stat crossbow included. LuAshitacast does not know this:
+-- it re-equips the slot the server emptied, the server empties the other one, and the two items flicker forever.
+-- Rule for this file: a set that names Range or Ammo names both, the other as 'remove' unless the pair is legal.
+-- CheckRangedPairs() runs on load (and on /blu ranged) and prints every set that breaks the rule.
+local RangedKind = {
+    -- stat ammo, skill none: only with an empty Range slot
+    ['happy egg'] = 'stat', ['fortune egg'] = 'stat', ['phtm. tathlum'] = 'stat', ['morion tathlum'] = 'stat',
+    ['white tathlum'] = 'stat', ['hedgehog bomb'] = 'stat', ['bomb core'] = 'stat', ['fenrir\'s stone'] = 'stat',
+    ['tiphia sting'] = 'stat', ['bibiki seashell'] = 'stat', ['olibanum sachet'] = 'stat', ['fire bomblet'] = 'stat',
+    -- throwing weapons (Range slot); only shuriken-type ammo may sit beside them
+    ['jr.msk.chakram +2'] = 'throw', ['jr.msk.chakram +1'] = 'throw', ['jr.msk.chakram'] = 'throw',
+    ['junior musketeer\'s chakram +2'] = 'throw', ['ungur boomerang'] = 'throw', ['rising sun'] = 'throw',
+    ['boomerang'] = 'throw', ['chakram'] = 'throw', ['smart grenade'] = 'throw',
+    -- bows, crossbows, guns, instruments (Range slot)
+    ['rapid bow'] = 'bow', ['lightning bow'] = 'bow', ['hamayumi'] = 'bow',
+    ['thug\'s zamburak'] = 'xbow', ['zamburak'] = 'xbow', ['velocity bow'] = 'xbow', ['othinus\' bow'] = 'xbow',
+    ['donderbuss'] = 'gun',
+    ['gjallarhorn'] = 'instrument', ['nursemaid\'s harp'] = 'instrument',
+    -- real ammunition (Ammo slot)
+    ['crossbow bolt'] = 'bolt', ['acid bolt'] = 'bolt', ['sleep bolt'] = 'bolt', ['bloody bolt'] = 'bolt',
+    ['holy bolt'] = 'bolt', ['blind bolt'] = 'bolt', ['venom bolt'] = 'bolt',
+    ['antlion arrow'] = 'arrow', ['nokizaru shuriken'] = 'shuriken',
+}
+local RangedPairAllowed = { bow = 'arrow', xbow = 'bolt', gun = 'bullet', throw = 'shuriken' }
+
+local function RangedKindOf(name)
+    if type(name) ~= 'string' or name == '' or name == 'remove' or name == 'displaced' then return nil end
+    return RangedKind[string.lower(name)] or 'unknown'
+end
+
+local function CheckRangedPairs()
+    local problems = 0
+    for setName, set in pairs(sets) do
+        if type(set) == 'table' then
+            local r = set.Range or set.range
+            local a = set.Ammo or set.ammo
+            local msg = nil
+            if r ~= nil and a == nil then
+                msg = 'names Range but not Ammo; add Ammo = \'remove\''
+            elseif a ~= nil and r == nil then
+                msg = 'names Ammo but not Range; add Range = \'remove\''
+            elseif r ~= nil and a ~= nil then
+                local rk, ak = RangedKindOf(r), RangedKindOf(a)
+                if rk == 'unknown' then
+                    msg = 'Range item "' .. r .. '" is not in RangedKind; add it'
+                elseif ak == 'unknown' then
+                    msg = 'Ammo item "' .. a .. '" is not in RangedKind; add it'
+                elseif rk ~= nil and ak ~= nil and RangedPairAllowed[rk] ~= ak then
+                    msg = string.format('%s (%s) and %s (%s) cannot be worn together', r, rk, a, ak)
+                end
+            end
+            if msg ~= nil then
+                problems = problems + 1
+                gFunc.Message('BLU set ' .. setName .. ': ' .. msg)
+            end
+        end
+    end
+    if problems == 0 then
+        gFunc.Message('BLU: Range/Ammo pairs OK')
+    else
+        gFunc.Message('BLU: ' .. problems .. ' Range/Ammo problem(s); fix them or the two slots will flicker')
+    end
 end
 
 local function EquipStaffAndObi(element)
@@ -586,11 +653,7 @@ local function EquipBlueMagic(spell)
             gFunc.EquipSet(sets['Mod_' .. stat])
         end
         if info.tp == 'crit' then gFunc.EquipSet(sets.BluePhys_Crit) end
-        if AccTier() == 'Low' then
-            gFunc.EquipSet(sets.BluePhys_LowAcc)
-        elseif AccTier() == 'High' then
-            gFunc.EquipSet(sets.BluePhys_HighAcc)
-        end
+        if Settings.Acc then gFunc.EquipSet(sets.BluePhys_Acc) end
         local tpActive = gData.GetBuffCount('Chain Affinity') > 0 or gData.GetPlayer().TP >= Settings.TpThreshold
         if tpActive and info.tp ~= nil and info.tp ~= 'dur' and info.tp ~= 'eff' then
             gFunc.EquipSet(sets.BluePhys_TP)
@@ -600,7 +663,7 @@ local function EquipBlueMagic(spell)
     elseif info.kind == 'mag' then
         gFunc.EquipSet(sets.BlueMag)
         gFunc.EquipSet(sets['BlueMag_' .. (info.dstat or 'INT')])
-        if AccTier() == 'High' then gFunc.EquipSet(sets.BlueMag_Acc) end
+        if Settings.Acc then gFunc.EquipSet(sets.BlueMag_Acc) end
         if gData.GetBuffCount('Burst Affinity') > 0 then gFunc.EquipSet(sets.BlueMag_MB) end
         EquipStaffAndObi(spell.Element)
 
@@ -619,7 +682,7 @@ local function EquipBlueMagic(spell)
 
     elseif info.kind == 'enf' then
         gFunc.EquipSet(sets.BlueEnfeeble)
-        if AccTier() == 'High' then gFunc.EquipSet(sets.BlueMag_Acc) end
+        if Settings.Acc then gFunc.EquipSet(sets.BlueMag_Acc) end
         EquipStaffAndObi(spell.Element)
 
     elseif info.kind == 'buff' then
@@ -636,6 +699,7 @@ end
 -- ---------------------------------------------------------------------------------------------------------------
 profile.OnLoad = function()
     gSettings.AllowAddSet = true
+    CheckRangedPairs()
     AshitaCore:GetChatManager():QueueCommand(-1, '/alias /blu /lac fwd')
     ashita.tasks.once(5.0, function()
         AshitaCore:GetChatManager():QueueCommand(1, '/macro book 10')
@@ -651,9 +715,10 @@ end
 profile.HandleCommand = function(args)
     local cmd = args[1]
     if cmd == 'acc' then
-        Settings.AccTier = Settings.AccTier + 1
-        if Settings.AccTier > #AccTiers then Settings.AccTier = 1 end
-        gFunc.Message('BLU accuracy: ' .. AccTier())
+        Settings.Acc = not Settings.Acc
+        gFunc.Message('BLU accuracy gear: ' .. tostring(Settings.Acc))
+    elseif cmd == 'ranged' then
+        CheckRangedPairs()
     elseif cmd == 'learn' then
         Settings.Learning = not Settings.Learning
         gFunc.Message('BLU learning lock: ' .. tostring(Settings.Learning))
@@ -673,7 +738,7 @@ profile.HandleCommand = function(args)
         gFunc.Message('BLU TP threshold: ' .. tostring(Settings.TpThreshold))
     elseif cmd == 'status' or cmd == 'blu' then
         gFunc.Message(string.format('BLU acc=%s learn=%s breathidle=%s staff=%s fastphys=%s tp>=%d',
-            AccTier(), tostring(Settings.Learning), tostring(Settings.BreathIdle),
+            tostring(Settings.Acc), tostring(Settings.Learning), tostring(Settings.BreathIdle),
             tostring(Settings.UseStaff), tostring(Settings.FastPhysical), Settings.TpThreshold))
     end
 end
@@ -689,8 +754,7 @@ profile.HandleDefault = function()
 
     if player.Status == 'Engaged' then
         gFunc.EquipSet(sets.TP)
-        if AccTier() ~= 'Low' then gFunc.EquipSet(sets.TP_MedAcc) end
-        if AccTier() == 'High' then gFunc.EquipSet(sets.TP_HighAcc) end
+        if Settings.Acc then gFunc.EquipSet(sets.TP_Acc) end
     elseif player.Status == 'Resting' then
         if restStarted == nil then restStarted = os.clock() end
         gFunc.EquipSet(sets.Idle)
@@ -744,7 +808,7 @@ end
 profile.HandleWeaponskill = function()
     local action = gData.GetAction()
     gFunc.EquipSet(sets.WS)
-    if AccTier() == 'High' then gFunc.EquipSet(sets.WS_HighAcc) end
+    if Settings.Acc then gFunc.EquipSet(sets.WS_Acc) end
     if action.Name == 'Seraph Blade' then
         gFunc.EquipSet(sets.WS_SeraphBlade)
     elseif action.Name == 'Vorpal Blade' then
