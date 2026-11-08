@@ -19,6 +19,9 @@ ashita-scripts/        text scripts for Game\scripts\, run in game with /exec <n
 macros/                in-game macro palettes written out as reference
 docs/                  setup and install guides, blue-magic-75.md (per-spell formulas and modifiers), gear-research/ (verified item tables)
 scripts/               deploy.sh (WSL/Linux) and deploy.ps1 (Windows) to copy a character into an install
+.claude/skills/       ffxi-gear-lua: how these profiles are researched, built, checked and deployed, for AI
+                       agents (Claude Code loads it on demand) and humans; its scripts/ has the FindAll
+                       inventory parser and the profile checker
 ```
 
 ## Install
@@ -56,6 +59,22 @@ Winger the files.
 - Every alias or bind made in `OnLoad` is deleted in `OnUnload`.
 - `settings.lua` is per character and is committed; it holds LuAshitacast's own settings, not gear.
 - `backups/` folders are gitignored. LuAshitacast writes one on every addset; git is the history.
+
+## Checking a profile before you deploy it
+
+```bash
+python3 .claude/skills/ffxi-gear-lua/scripts/check-profile.py luashitacast/<Name>_<Id>/<JOB>.lua
+```
+
+No Lua needed. It reports unbalanced braces, references to sets that do not exist, slots assigned twice,
+`''` no-ops, and Range/Ammo pairs the server will not allow together (it unequips one, the addon re-equips
+it, and the two flicker). To list what a character owns from a FindAll cache export:
+
+```bash
+python3 .claude/skills/ffxi-gear-lua/scripts/parse-findall.py <Name>_<Id>.bin --items items.lua --job BLU --md inventory.md
+```
+
+`items.lua` is `resources_data/items.lua` from <https://github.com/Windower/Resources>.
 
 ## Related repos
 

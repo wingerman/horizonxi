@@ -29,6 +29,10 @@ Two changes, applied to all three files:
 - **Accuracy is on or off.** The Low / Med / High cycle (and the Low "attack" variant) is gone. `/blu acc`
   toggles `Settings.Acc`; when on, `TP_Acc`, `WS_Acc`, `BluePhys_Acc` and `BlueMag_Acc` lay over their bases.
   Fewer items to cycle through, and the status line reads `acc=true/false`.
+- **Structural check before deploy.** `python3 .claude/skills/ffxi-gear-lua/scripts/check-profile.py <file.lua>`
+  checks balanced braces and blocks, every `sets.X` reference, slot names, duplicate slots, `''` no-ops and the
+  Range/Ammo pairing without a Lua interpreter. Exit 1 means do not deploy. The method behind these files is
+  written up as a skill in [.claude/skills/ffxi-gear-lua/](../../.claude/skills/ffxi-gear-lua/SKILL.md).
 
 ## BLU.lua (v2, 2026-11-07)
 
@@ -114,8 +118,9 @@ after each Horizon patch.
 
 Same logic, filled only from what Tim owns per [inventory-2026-11-07.md](inventory-2026-11-07.md), which was
 parsed from his FindAll plugin cache (`Game\config\plugins\findall\cache\Agamotto_112818.bin`: 16-byte
-name, 4-byte id, then 15 containers of 81 item records at 44 bytes, then a 4096-byte key-item bitmap). The
-cache covered Inventory, Safe, Safe2, Storage, Locker, Case, Wardrobe 2 and Wardrobe 7, so Mog House gear is
+name, 4-byte id, then the 16 containers other than Temporary at 81 item records of 44 bytes each, then a
+4096-byte key-item bitmap; parser: `.claude/skills/ffxi-gear-lua/scripts/parse-findall.py`). The cache covered
+Inventory, Safe, Storage, Satchel, Wardrobe, Wardrobe 2, 3 and 8, so Mog House gear is
 in. Every owned item's Horizon stats were checked on the wiki
 ([docs/gear-research/blu-75/owned-agamotto.md](../../docs/gear-research/blu-75/owned-agamotto.md)).
 
