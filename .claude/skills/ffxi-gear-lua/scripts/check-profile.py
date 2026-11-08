@@ -8,6 +8,9 @@ Errors (the profile will misbehave or fail to load):
   - a reference like sets.Foo to a set that is not defined in the `local sets = {` block
   - a set that names Range or Ammo but not the other, in a profile that uses both slots somewhere,
     or a Range/Ammo pair the server will not allow together (see references/ffxi-invariants.md)
+  - Range differs between sets: the server zeroes TP on any Range change, exactly as for Main and Sub,
+    so a profile that wears a chakram in one set and an egg (Range empty) in another dumps TP on every
+    swap between them. Decide Range once per profile, outside the sets, and never name it in a set.
   - a slot name LuAshitacast does not know
   - a slot assigned twice in one set (the second wins silently; usually Ear1/Ear1 meant Ear1/Ear2)
 Warnings (legal, but probably not what was meant):
@@ -130,6 +133,21 @@ def check(path):
 
     uses_range = any(named(b, 'range') not in (None, *KEYWORDS) for b in sets.values())
     uses_ammo = any(named(b, 'ammo') not in (None, *KEYWORDS) for b in sets.values())
+
+    # Range is a weapon slot: any change to it zeroes TP (LandSandBoat charutils.cpp, UnequipItem case
+    # SLOT_RANGED and the SLOT_MAIN/SLOT_RANGED/SLOT_SUB branch of EquipItem). Two different Range values
+    # in one profile means the addon swaps them and the player's TP goes with it.
+    range_values = {}
+    for name, body in sets.items():
+        rng = named(body, 'range')
+        if rng is None or rng == '':
+            continue
+        key = 'empty' if rng in KEYWORDS else rng
+        range_values.setdefault(key, []).append(name)
+    if len(range_values) > 1:
+        where = '; '.join(f'{v} in {", ".join(ns)}' for v, ns in sorted(range_values.items()))
+        errors.append(f'Range differs between sets ({where}): changing the Range slot zeroes TP like Main/Sub. '
+                      f'Pick one Range for the whole profile and equip it from a toggle outside the sets, not per set')
 
     for name, body in sets.items():
         seen = set()

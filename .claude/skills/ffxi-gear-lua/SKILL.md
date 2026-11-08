@@ -51,11 +51,17 @@ is written down (the Mirage relic lesson in the Agamotto README).
   count, what TP changes) and compose from that. Derive the table from the server's scripts.
 - **Toggles are on/off.** Players will not cycle three accuracy tiers mid-fight. One `acc`
   toggle, one `learn` lock, one idle mode. Expose a `status` command that prints them.
-- **Spell sets never change Main or Sub.** A weapon swap zeroes TP. Elemental staves are wired
-  but off by default, opt-in by toggle.
-- **Range and Ammo are one decision.** The server empties one when the other's skill type differs,
-  and the addon re-equips it: endless flicker. Every set that names either names both, the other
-  `'remove'`. Validate at load time. Details and the legal pairs: `references/ffxi-invariants.md`.
+- **Sets never change Main, Sub or Range.** The server zeroes TP on any change to those three
+  slots (Ammo is exempt). Elemental staves are wired but off by default, opt-in by toggle. Range is
+  decided once per profile by a toggle applied as the last layer on every equip path, never named in
+  a set; a chakram in the TP set and an egg in the magic set is a TP dump on every cast.
+- **Ammo pairs with Range.** The server empties one when the other's skill type differs, and the
+  addon re-equips it: endless flicker. Stat ammo (eggs, Tathlums) needs an empty Range slot; a thrown
+  weapon needs an empty Ammo slot. With Range fixed, Ammo is the slot that swaps freely. Validate at
+  load time. Details and the legal pairs: `references/ffxi-invariants.md`.
+- **Give the player a slot lock.** The addon can freeze a slot as worn (`/lac disable <slot>`,
+  `gFunc.Disable`). Expose it as a profile command for the slot pair most likely to misbehave, so an
+  edge case in the field costs one keypress instead of a fight.
 - **Sub-second casts go on in precast.** The server reads stats at completion; a midcast packet
   sent after a 0.5 s spell can miss.
 - **Max-HP and max-MP swaps need priority ordering** so the HP+ piece is not equipped after the

@@ -12,9 +12,13 @@
 -- Slayer, and Insect Slayer (Horizon-buffed to Magic Accuracy +11 / MAB +9). Creek M Mitts and Steppe Sash are
 -- Tarutaru-male items with HP +65 / HP +60. No obis, no Maat's Cap, no Rajas, no Novio, no Mahatma.
 --
--- Weapon rule: no spell set changes Main or Sub. Swapping a weapon zeroes TP, and on Horizon held TP is a
+-- Weapon rule: no set changes Main, Sub or RANGE. The server zeroes TP whenever any of those three slots
+-- changes (LandSandBoat charutils.cpp, UnequipItem and EquipItem; Ammo is exempt), and on Horizon held TP is a
 -- large part of physical spell damage. Elemental staves are wired but off (/blu staff) for the same reason.
 -- Weapon DMG and attack do not feed physical spells, so Main/Sub are picked for melee TP and their stats.
+-- The Range slot is therefore owned by one toggle (/blu chakram) and never appears inside a set; v3 put the
+-- chakram in TP/WS/BluePhys and an egg or Tathlum everywhere else, so every magical, breath, drain or enfeeble
+-- cast pulled the chakram off and dumped Tim's TP. Ammo swaps are free, so the eggs and the Tathlum stay.
 --
 -- Item names are in-game display names from the FindAll cache (Scp. Harness +1, Errant Hpl., Loquac. Earring,
 -- Phtm. Tathlum, Ryl.Kgt. Belt, Jr.Msk.Chakram +2). If a swap does not happen, /lac debug on and compare.
@@ -53,7 +57,11 @@
 --
 -- Commands (type /blu <cmd>, or /lac fwd <cmd>):
 --   acc        toggle accuracy gear on/off (TP_Acc, WS_Acc, BluePhys_Acc, BlueMag_Acc)
---   ranged     re-run the Range/Ammo pair check (it also runs on load)
+--   ranged     re-run the Range/Ammo check (it also runs on load)
+--   chakram    toggle the chakram in the Range slot for ALL sets (off by default: Range empty, stat ammo in Ammo).
+--              Flipping it zeroes TP once, so do it between fights.
+--   rlock      freeze Range and Ammo exactly as worn (LuAshitacast slot disable) until toggled off. The
+--              override for anything this file gets wrong about those two slots; bind it to a key.
 --   learn      toggle spell-learning lock (Magus Jubbah + Bazubands on every blue cast)
 --   breath     toggle max-HP idle mode (breath spells already swap to max HP midcast; this is for standing around)
 --   staff      toggle elemental staff swaps on magical/breath/drain/enfeeble/cure casts (costs TP; off by default)
@@ -62,7 +70,7 @@
 --   status     print current toggles
 --
 -- Rules that bite: '' in a slot does nothing, 'remove' clears it, 'displaced' marks a slot another item will
--- empty. Range and Ammo are set together in every set that names either (see "Range and Ammo travel together").
+-- empty. No set names Range (see "Range is a weapon slot"); Ammo in a set must be stat ammo, never real ammunition.
 -- Set keys are case sensitive. /lac addset rewrites the "local sets = {" block, keep braces balanced.
 
 local profile = {}
@@ -75,6 +83,8 @@ local Settings = {
     Learning     = false,
     BreathIdle   = false,
     UseStaff     = false,   -- swapping main hand for a staff dumps TP; opt in
+    Chakram      = false,   -- Jr.Msk.Chakram +2 in Range for every set (/blu chakram); off = Range empty, stat ammo in Ammo
+    RangeLock    = false,   -- /blu rlock: Range and Ammo frozen as worn, the profile leaves both alone
     FastPhysical = true,    -- equip physical blue set in precast for sub-second casts
     RestingAfter = 16,      -- seconds of resting before resting gear goes on (lets a regen tick land first)
     TpThreshold  = 2000,    -- TP at or above this counts as "TP active" for BluePhys_TP (Horizon 2.0 behaviour)
@@ -89,7 +99,6 @@ local sets = {
     Idle = {
         Main = 'Devil Slayer',              -- TP weapons stay on at idle
         Sub = 'Demon Slayer',               -- /NIN; Genbu's Shield (PDT -10%, Eva +10) when not /NIN
-        Range = 'remove',                   -- stat ammo needs an empty Range slot (see Range and Ammo below)
         Ammo = 'Fortune Egg',               -- MP +1%
         Head = 'Homam Zucchetto',
         Neck = 'Peacock Amulet',
@@ -107,7 +116,6 @@ local sets = {
     Resting = {
         Main = 'Pluto\'s Staff',            -- hMP +10. Costs TP; comment out if holding TP matters more than MP
         Sub = 'displaced',
-        Range = 'remove',                   -- stat ammo needs an empty Range slot (see Range and Ammo below)
         Ammo = 'Fortune Egg',
         Neck = 'Checkered Scarf',           -- hMP +1
         Ear1 = 'Relaxing Earring',          -- hMP +2
@@ -121,7 +129,6 @@ local sets = {
     },
     -- Max HP. Breath spells read HP at cast completion; also /blu breath idle mode.
     MaxHP = {
-        Range = 'remove',                   -- stat ammo needs an empty Range slot (see Range and Ammo below)
         Ammo = 'Happy Egg',                 -- HP +1%
         Head = 'Homam Zucchetto',           -- HP +22 (breath overlay swaps in Mirage Keffiyeh)
         Neck = 'Shield Pendant',            -- HP +20
@@ -141,8 +148,7 @@ local sets = {
     TP = {
         Main = 'Devil Slayer',
         Sub = 'Demon Slayer',
-        Range = 'Jr.Msk.Chakram +2',        -- STR +3 outside own-nation areas
-        Ammo = 'remove',                    -- a ranged weapon locks out stat ammo
+        Ammo = 'Happy Egg',                 -- HP +1%; Range is owned by /blu chakram, never by a set
         Head = 'Homam Zucchetto',
         Neck = 'Peacock Amulet',
         Ear1 = 'Brutal Earring',
@@ -164,8 +170,7 @@ local sets = {
 
     -- ---- Weaponskills ---------------------------------------------------------------------------------------
     WS = {
-        Range = 'Jr.Msk.Chakram +2',        -- STR +3 outside own-nation areas
-        Ammo = 'remove',                    -- a ranged weapon locks out stat ammo
+        Ammo = 'Happy Egg',                 -- HP +1%; Range is owned by /blu chakram, never by a set
         Head = 'Homam Zucchetto',
         Neck = 'Spike Necklace',            -- STR +3 DEX +3
         Ear1 = 'Brutal Earring',
@@ -211,8 +216,7 @@ local sets = {
     -- STR, Blue Magic skill, modifier stats, then accuracy. Attack is ignored by the formula on Horizon.
     -- Ears are left alone so Brutal/Stealth stay on.
     BluePhys = {
-        Range = 'Jr.Msk.Chakram +2',        -- STR +3 away from home nation
-        Ammo = 'remove',                    -- a ranged weapon locks out stat ammo
+        Ammo = 'Happy Egg',                 -- HP +1%; Range is owned by /blu chakram, never by a set
         Head = 'Mirage Keffiyeh',           -- Blue Magic skill +5
         Neck = 'Spike Necklace',            -- STR +3 DEX +3 (MND -6: Mod_MND swaps it out)
         Body = 'Magus Jubbah',              -- Blue Magic skill +15, STR +3 DEX +3
@@ -270,7 +274,6 @@ local sets = {
         Feet = 'Mirage Charuqs +1',         -- AGI +4 INT +4
     },
     Mod_INT = {
-        Range = 'remove',                   -- stat ammo needs an empty Range slot (see Range and Ammo below)
         Ammo = 'Phtm. Tathlum',             -- INT +2
         Neck = 'Prudence Torque',           -- INT +5
         Ring2 = 'Snow Ring',                -- INT +5
@@ -287,7 +290,6 @@ local sets = {
 
     -- ---- Magical blue magic ---------------------------------------------------------------------------------
     BlueMag = {                     -- INT, MAB, magic accuracy
-        Range = 'remove',                   -- stat ammo needs an empty Range slot (see Range and Ammo below)
         Ammo = 'Phtm. Tathlum',             -- INT +2
         Head = 'Magus Keffiyeh',            -- INT +3 MND +3
         Neck = 'Prudence Torque',           -- INT +5. Uggalepih Pendant (MAB +8 under 51% MP) is the manual swap
@@ -323,7 +325,6 @@ local sets = {
         Ear2 = 'Moldavite Earring',         -- MAB +5 (breath is MAB-scaled on Horizon for now)
     },
     BlueDrain = {                   -- Blood Drain, Digest, MP Drainkiss, Blood Saber: INT, Macc, MAB, skill
-        Range = 'remove',                   -- stat ammo needs an empty Range slot (see Range and Ammo below)
         Ammo = 'Phtm. Tathlum',
         Head = 'Magus Keffiyeh',
         Neck = 'Prudence Torque',
@@ -343,7 +344,6 @@ local sets = {
         Waist = 'Ryl.Kgt. Belt',            -- MND +2
     },
     BlueEnfeeble = {                -- resist check on INT and Blue Magic skill
-        Range = 'remove',                   -- stat ammo needs an empty Range slot (see Range and Ammo below)
         Ammo = 'Phtm. Tathlum',
         Head = 'Magus Keffiyeh',
         Neck = 'Prudence Torque',
@@ -557,72 +557,65 @@ local function LockSafeGear()
 end
 
 -- ---------------------------------------------------------------------------------------------------------------
--- Range and Ammo travel together
+-- Range is a weapon slot
 -- ---------------------------------------------------------------------------------------------------------------
--- The server (LandSandBoat charutils.cpp, EquipItem) empties the other slot whenever a Range or Ammo item's
--- skill type differs from what is already there: a bow tolerates only arrows, a crossbow only bolts, a gun only
--- bullets. Stat ammo (Happy Egg, Tathlums, Hedgehog Bomb, Bomb Core, Tiphia Sting...) has no skill at all, so
--- it cannot share with ANY ranged weapon, chakram and stat crossbow included. LuAshitacast does not know this:
--- it re-equips the slot the server emptied, the server empties the other one, and the two items flicker forever.
--- Rule for this file: a set that names Range or Ammo names both, the other as 'remove' unless the pair is legal.
--- CheckRangedPairs() runs on load (and on /blu ranged) and prints every set that breaks the rule.
-local RangedKind = {
-    -- stat ammo, skill none: only with an empty Range slot
-    ['happy egg'] = 'stat', ['fortune egg'] = 'stat', ['phtm. tathlum'] = 'stat', ['morion tathlum'] = 'stat',
-    ['white tathlum'] = 'stat', ['hedgehog bomb'] = 'stat', ['bomb core'] = 'stat', ['fenrir\'s stone'] = 'stat',
-    ['tiphia sting'] = 'stat', ['bibiki seashell'] = 'stat', ['olibanum sachet'] = 'stat', ['fire bomblet'] = 'stat',
-    -- throwing weapons (Range slot); only shuriken-type ammo may sit beside them
-    ['jr.msk.chakram +2'] = 'throw', ['jr.msk.chakram +1'] = 'throw', ['jr.msk.chakram'] = 'throw',
-    ['junior musketeer\'s chakram +2'] = 'throw', ['ungur boomerang'] = 'throw', ['rising sun'] = 'throw',
-    ['boomerang'] = 'throw', ['chakram'] = 'throw', ['smart grenade'] = 'throw',
-    -- bows, crossbows, guns, instruments (Range slot)
-    ['rapid bow'] = 'bow', ['lightning bow'] = 'bow', ['hamayumi'] = 'bow',
-    ['thug\'s zamburak'] = 'xbow', ['zamburak'] = 'xbow', ['velocity bow'] = 'xbow', ['othinus\' bow'] = 'xbow',
-    ['donderbuss'] = 'gun',
-    ['gjallarhorn'] = 'instrument', ['nursemaid\'s harp'] = 'instrument',
-    -- real ammunition (Ammo slot)
-    ['crossbow bolt'] = 'bolt', ['acid bolt'] = 'bolt', ['sleep bolt'] = 'bolt', ['bloody bolt'] = 'bolt',
-    ['holy bolt'] = 'bolt', ['blind bolt'] = 'bolt', ['venom bolt'] = 'bolt',
-    ['antlion arrow'] = 'arrow', ['nokizaru shuriken'] = 'shuriken',
-}
-local RangedPairAllowed = { bow = 'arrow', xbow = 'bolt', gun = 'bullet', throw = 'shuriken' }
+-- The server zeroes TP whenever Main, Sub or Range changes (LandSandBoat charutils.cpp: UnequipItem case
+-- SLOT_RANGED and the SLOT_MAIN/SLOT_RANGED/SLOT_SUB branch at the end of EquipItem; only instruments are exempt).
+-- Ammo is not on that list, so eggs and Tathlums may swap freely. The same file also empties Range or Ammo when
+-- the other's skill type differs, and stat ammo has no skill at all, so a chakram and an egg cannot be worn
+-- together and LuAshitacast would re-equip whichever one the server removed, forever (the v3 flicker).
+--
+-- Rule for this file: NO set names Range. One toggle decides the slot for every set, so it never changes during
+-- a fight: /blu chakram off (default) keeps Range empty and lets each set pick its stat ammo; on puts the chakram
+-- in Range for everything and forces Ammo empty. Flipping the toggle costs TP once, which the message says.
+-- /blu rlock freezes both slots as worn (gFunc.Disable) for the edge case this file did not foresee.
+-- CheckRanged() runs on load (and on /blu ranged) and prints every set that breaks the rule.
+local ChakramName = 'Jr.Msk.Chakram +2'           -- Ranged Acc/Atk +5; STR +3 outside own nation's control
 
-local function RangedKindOf(name)
-    if type(name) ~= 'string' or name == '' or name == 'remove' or name == 'displaced' then return nil end
-    return RangedKind[string.lower(name)] or 'unknown'
+local StatAmmo = {                                 -- skill none: legal only with an empty Range slot
+    ['happy egg'] = true, ['fortune egg'] = true, ['phtm. tathlum'] = true, ['morion tathlum'] = true,
+    ['white tathlum'] = true, ['hedgehog bomb'] = true, ['bomb core'] = true, ['fenrir\'s stone'] = true,
+    ['tiphia sting'] = true, ['bibiki seashell'] = true, ['olibanum sachet'] = true, ['fire bomblet'] = true,
+}
+
+-- Outside the sets block on purpose: /lac addset must never write Range into a set.
+local RangedSets = {
+    Off     = { Range = 'remove' },
+    Chakram = { Range = ChakramName, Ammo = 'remove' },
+}
+
+-- Last layer on every equip path. Overrides whatever Ammo a set asked for when the chakram is on.
+local function ApplyRanged()
+    if Settings.RangeLock then return end
+    if Settings.Chakram then
+        gFunc.EquipSet(RangedSets.Chakram)
+    else
+        gFunc.EquipSet(RangedSets.Off)
+    end
 end
 
-local function CheckRangedPairs()
+local function CheckRanged()
     local problems = 0
     for setName, set in pairs(sets) do
         if type(set) == 'table' then
             local r = set.Range or set.range
             local a = set.Ammo or set.ammo
-            local msg = nil
-            if r ~= nil and a == nil then
-                msg = 'names Range but not Ammo; add Ammo = \'remove\''
-            elseif a ~= nil and r == nil then
-                msg = 'names Ammo but not Range; add Range = \'remove\''
-            elseif r ~= nil and a ~= nil then
-                local rk, ak = RangedKindOf(r), RangedKindOf(a)
-                if rk == 'unknown' then
-                    msg = 'Range item "' .. r .. '" is not in RangedKind; add it'
-                elseif ak == 'unknown' then
-                    msg = 'Ammo item "' .. a .. '" is not in RangedKind; add it'
-                elseif rk ~= nil and ak ~= nil and RangedPairAllowed[rk] ~= ak then
-                    msg = string.format('%s (%s) and %s (%s) cannot be worn together', r, rk, a, ak)
-                end
-            end
-            if msg ~= nil then
+            if r ~= nil then
                 problems = problems + 1
-                gFunc.Message('BLU set ' .. setName .. ': ' .. msg)
+                gFunc.Message('BLU set ' .. setName .. ': names Range ("' .. tostring(r) .. '"). Swapping Range zeroes TP; '
+                    .. 'delete that line, /blu chakram owns the slot')
+            end
+            if type(a) == 'string' and a ~= 'remove' and a ~= 'displaced' and StatAmmo[string.lower(a)] == nil then
+                problems = problems + 1
+                gFunc.Message('BLU set ' .. setName .. ': Ammo "' .. a .. '" is not stat ammo. Real ammunition needs a '
+                    .. 'matching Range weapon and this profile keeps Range empty (or the chakram, which takes no ammo)')
             end
         end
     end
     if problems == 0 then
-        gFunc.Message('BLU: Range/Ammo pairs OK')
+        gFunc.Message(string.format('BLU: Range/Ammo OK (chakram=%s, rlock=%s)', tostring(Settings.Chakram), tostring(Settings.RangeLock)))
     else
-        gFunc.Message('BLU: ' .. problems .. ' Range/Ammo problem(s); fix them or the two slots will flicker')
+        gFunc.Message('BLU: ' .. problems .. ' Range/Ammo problem(s); fix them or you will lose TP or flicker')
     end
 end
 
@@ -691,6 +684,7 @@ local function EquipBlueMagic(spell)
     end
 
     if Settings.Learning then gFunc.EquipSet(sets.Learning) end
+    ApplyRanged()
     LockSafeGear()
 end
 
@@ -699,7 +693,7 @@ end
 -- ---------------------------------------------------------------------------------------------------------------
 profile.OnLoad = function()
     gSettings.AllowAddSet = true
-    CheckRangedPairs()
+    CheckRanged()
     AshitaCore:GetChatManager():QueueCommand(-1, '/alias /blu /lac fwd')
     ashita.tasks.once(5.0, function()
         AshitaCore:GetChatManager():QueueCommand(1, '/macro book 10')
@@ -709,6 +703,7 @@ profile.OnLoad = function()
 end
 
 profile.OnUnload = function()
+    if Settings.RangeLock then gFunc.Enable('Range'); gFunc.Enable('Ammo') end   -- do not leave the next job's slots frozen
     AshitaCore:GetChatManager():QueueCommand(-1, '/alias delete /blu')
 end
 
@@ -718,7 +713,21 @@ profile.HandleCommand = function(args)
         Settings.Acc = not Settings.Acc
         gFunc.Message('BLU accuracy gear: ' .. tostring(Settings.Acc))
     elseif cmd == 'ranged' then
-        CheckRangedPairs()
+        CheckRanged()
+    elseif cmd == 'chakram' then
+        Settings.Chakram = not Settings.Chakram
+        gFunc.Message('BLU chakram in Range for all sets: ' .. tostring(Settings.Chakram) .. ' (this swap zeroes TP once)')
+    elseif cmd == 'rlock' then
+        Settings.RangeLock = not Settings.RangeLock
+        if Settings.RangeLock then
+            gFunc.Disable('Range')
+            gFunc.Disable('Ammo')
+            gFunc.Message('BLU Range and Ammo LOCKED as worn; /blu rlock again to release')
+        else
+            gFunc.Enable('Range')
+            gFunc.Enable('Ammo')
+            gFunc.Message('BLU Range and Ammo released; chakram=' .. tostring(Settings.Chakram))
+        end
     elseif cmd == 'learn' then
         Settings.Learning = not Settings.Learning
         gFunc.Message('BLU learning lock: ' .. tostring(Settings.Learning))
@@ -737,9 +746,10 @@ profile.HandleCommand = function(args)
         end
         gFunc.Message('BLU TP threshold: ' .. tostring(Settings.TpThreshold))
     elseif cmd == 'status' or cmd == 'blu' then
-        gFunc.Message(string.format('BLU acc=%s learn=%s breathidle=%s staff=%s fastphys=%s tp>=%d',
+        gFunc.Message(string.format('BLU acc=%s learn=%s breathidle=%s staff=%s fastphys=%s tp>=%d chakram=%s rlock=%s',
             tostring(Settings.Acc), tostring(Settings.Learning), tostring(Settings.BreathIdle),
-            tostring(Settings.UseStaff), tostring(Settings.FastPhysical), Settings.TpThreshold))
+            tostring(Settings.UseStaff), tostring(Settings.FastPhysical), Settings.TpThreshold,
+            tostring(Settings.Chakram), tostring(Settings.RangeLock)))
     end
 end
 
@@ -769,6 +779,7 @@ profile.HandleDefault = function()
 
     if player.Status ~= 'Resting' then restStarted = nil end
 
+    ApplyRanged()
     LockSafeGear()
 end
 
@@ -781,6 +792,7 @@ profile.HandlePrecast = function()
         return
     end
     gFunc.EquipSet(sets.Precast)
+    ApplyRanged()
     LockSafeGear()
 end
 
@@ -794,6 +806,7 @@ profile.HandleMidcast = function()
     if spell.Skill == 'Healing Magic' then
         gFunc.EquipSet(sets.BlueCure)
     end
+    ApplyRanged()
     LockSafeGear()
 end
 
@@ -816,6 +829,7 @@ profile.HandleWeaponskill = function()
     elseif action.Name == 'Savage Blade' then
         gFunc.EquipSet(sets.WS_SavageBlade)
     end
+    ApplyRanged()
     LockSafeGear()
 end
 

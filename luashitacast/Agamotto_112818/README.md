@@ -12,6 +12,47 @@ Three profiles live here:
 - `BLU_bis.lua`: the same logic filled with the best in-era gear on Horizon, whether or not Tim owns it. A shopping list.
 - `BLU_inv.lua`: the same logic filled only from gear Tim actually owns, per `inventory-2026-11-07.md`. Load this one first.
 
+## v4 (2026-11-08, after Tim's second play test): Range is a weapon slot
+
+Tim saw TP vanish on some spells (he mentioned the Happy Egg and the Phantom Tathlum). Cause: v3 put the chakram
+in the TP, WS and BluePhys sets and `Range = 'remove'` with an egg or the Tathlum in Idle, Resting, MaxHP, Mod_INT,
+BlueMag, BlueDrain and BlueEnfeeble. On the server (LandSandBoat `charutils.cpp`), unequipping or equipping anything
+in Main, Sub **or Range** sets TP to 0; only instruments are exempt, and Ammo is not on the list. So every
+magical, breath, drain or enfeeble cast pulled the chakram off (TP gone), then the TP set put it back after the cast
+(TP gone again), and disengaging did the same. Head Butt, Terror Touch, Mandibular Bite and Queasyshroom did it too,
+through the Mod_INT overlay. Applies to `BLU_inv.lua` only: `BLU.lua` wears the chakram everywhere and `BLU_bis.lua`
+nowhere, so neither swaps it.
+
+The fix, in `BLU_inv.lua`:
+
+- **No set names Range any more.** One toggle owns the slot for every set, so it cannot change mid-fight.
+  `/blu chakram` off (the default) keeps Range empty and each set picks its stat ammo: Fortune Egg at idle, Happy
+  Egg for TP, WS, physical spells and breath, Phtm. Tathlum for INT casts. Ammo swaps do not touch TP. `/blu
+  chakram` on puts Jr.Msk.Chakram +2 in Range for everything and forces Ammo empty (STR +3 outside your own nation's
+  areas, nothing else). Flipping the toggle costs TP once; the message says so. Do it between fights.
+- **`/blu rlock` is the override.** It freezes Range and Ammo exactly as worn (LuAshitacast's slot disable) and
+  the profile leaves both alone until you run it again. For the case this file did not foresee: a pull bow, a
+  shuriken, an event item, whatever. `/blu status` shows `chakram=` and `rlock=`.
+- **Load-time check rewritten.** `CheckRanged()` now flags any set that names Range (an `/lac addset` while wearing
+  the chakram would do that) and any Ammo that is not stat ammo. The repo checker gained the same rule: a profile
+  whose Range differs between sets fails `check-profile.py`.
+
+Binding the override to a key, so it is one press in a fight (Ashita `/bind`; `^` is Ctrl, `!` is Alt, `+` is Shift):
+
+```
+/bind ^F9 /lac fwd rlock
+```
+
+Type it once per session, or make it permanent in `Game\scripts\default.txt` in the **Custom user plugins and
+addons** section near the top (not inside the launcher-controlled keybinds block, which the launcher overwrites).
+Use the `/lac fwd` form rather than `/blu` so the bind does not depend on the alias the profile creates. Plain
+LuAshitacast does the same thing in two commands if the profile is not loaded: `/lac disable range` and `/lac
+disable ammo`, undone with `/lac enable range` / `/lac enable ammo`.
+
+Still costs TP by design, both documented in the file: resting (the `Resting` set swaps to Pluto's Staff for hMP;
+comment the `Main`/`Sub` lines out if holding TP through a rest matters more than MP) and `/blu staff` (off by
+default).
+
 ## v3 (2026-11-07, after Tim's first play test)
 
 Two changes, applied to all three files:

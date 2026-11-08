@@ -77,8 +77,11 @@ is the working copy after a hand edit; pull or deploy between them, never edit b
 ## Commands for the verification loop
 
 `/lac reload`, `/lac load <File>`, `/lac debug on|off` (every swap printed with the calling handler),
-`/lac list gui` (browse sets), `/lac disable` (freeze swaps while dressing for addset), `/lac safecall`
-(show real Lua errors instead of swallowing them), `/lac fwd <args>` (reach HandleCommand).
+`/lac list gui` (browse sets), `/lac disable [slot]` / `/lac enable [slot]` (freeze one slot or all as
+worn; `gFunc.Disable(slot)` / `gFunc.Enable(slot)` from Lua, slot names case-insensitive), `/lac safecall`
+(show real Lua errors instead of swallowing them), `/lac fwd <args>` (reach HandleCommand). Disabled
+slots are skipped by every equip path, so a profile command that disables Range and Ammo is a clean
+player-side override when the profile's ranged logic meets an edge case (Agamotto `/blu rlock`).
 
 ## Composition pattern used in the Agamotto BLU profiles
 

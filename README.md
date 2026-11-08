@@ -67,8 +67,9 @@ python3 .claude/skills/ffxi-gear-lua/scripts/check-profile.py luashitacast/<Name
 ```
 
 No Lua needed. It reports unbalanced braces, references to sets that do not exist, slots assigned twice,
-`''` no-ops, and Range/Ammo pairs the server will not allow together (it unequips one, the addon re-equips
-it, and the two flicker). To list what a character owns from a FindAll cache export:
+`''` no-ops, Range/Ammo pairs the server will not allow together (it unequips one, the addon re-equips
+it, and the two flicker), and a Range slot that differs between sets (any Range change zeroes TP, same as
+Main and Sub). To list what a character owns from a FindAll cache export:
 
 ```bash
 python3 .claude/skills/ffxi-gear-lua/scripts/parse-findall.py <Name>_<Id>.bin --items items.lua --job BLU --md inventory.md

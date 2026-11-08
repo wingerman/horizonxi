@@ -21,17 +21,24 @@ other slot. Both directions. `sql/item_weapon.sql` gives the skill types:
 
 Consequences: stat ammo needs an empty Range slot; a chakram or a stat crossbow needs an empty Ammo
 slot or matching ammunition. A set that names one slot without the other inherits whatever was there
-and the server resolves the conflict by unequipping, which the addon then undoes. Every set that names
-Range or Ammo names both. `scripts/check-profile.py` enforces it; the Agamotto BLU profiles also check
-at load in Lua (`CheckRangedPairs`).
+and the server resolves the conflict by unequipping, which the addon then undoes. Because Range is also
+a TP-resetting slot (next section), the working pattern is: Range fixed for the whole profile by a toggle
+outside the sets, Ammo chosen per set from stat ammo only. `scripts/check-profile.py` enforces both the
+pairing and the one-Range rule; the Agamotto BLU_inv profile also checks at load in Lua (`CheckRanged`).
 
 Also in the same function: Range and Ammo cannot change during a ranged attack, and Main, Sub, Range
 and Ammo cannot change during a weaponskill.
 
-## Weapon swaps zero TP
+## Weapon swaps zero TP, and Range is a weapon slot
 
-Changing Main or Sub resets TP to 0. Spell sets therefore never touch weapons; elemental staves and
-hMP staves are opt-in toggles with the cost spelled out in the header.
+Changing Main, Sub or Range resets TP to 0; Ammo does not. Source: `charutils.cpp`, `UnequipItem` (case
+`SLOT_RANGED` sets `health.tp = 0` unless the outgoing item is an instrument or handbell; `SLOT_MAIN` and
+`SLOT_SUB` always) and the block at the end of `EquipItem` that resets TP when `equipSlotID` is
+`SLOT_MAIN`, `SLOT_RANGED` or `SLOT_SUB` and the new item is not an instrument. Retail behaves the same.
+Spell sets therefore never touch any of the three; elemental staves and hMP staves are opt-in toggles with
+the cost spelled out in the header, and a thrown weapon or bow in Range is a profile-wide choice, not a
+per-set one. Found the hard way on 2026-11-08: Agamotto's v3 wore a chakram in TP/WS/physical sets and
+stat ammo (Range empty) in magic, breath and idle sets, so every magical cast dumped TP.
 
 ## Stats are read when the action resolves
 

@@ -15,10 +15,12 @@
 --   Slot = ''                       does nothing; the slot is left as is
 --   Slot = 'remove'                 unequips the slot
 --   Slot = 'displaced'              tells LAC another item will empty this slot
+--   Main, Sub, Range                any change to these three zeroes TP (Ammo is exempt). Never name Range in a
+--                                   set; decide it once for the profile and apply it as the last layer, like
+--                                   Agamotto_112818/BLU_inv.lua ApplyRanged() and its /blu chakram toggle.
 --   Range + Ammo                    the server empties one when their skill types differ (bow/arrow, xbow/bolt,
 --                                   gun/bullet are the only pairs; stat ammo like Happy Egg pairs with nothing).
---                                   LAC then re-equips it and the two flicker. A set that names either names both,
---                                   the other 'remove'. See Agamotto_112818/BLU_inv.lua CheckRangedPairs().
+--                                   LAC then re-equips it and the two flicker. Stat ammo needs Range empty.
 --   Slot = {'A','B'}                IGNORED unless the set name ends in _Priority (see below)
 --   sets.tp vs sets.TP              different keys; typos equip nothing and say nothing
 --   /lac addset rewrites the block between "local sets = {" and its closing "};" by text. Keep
